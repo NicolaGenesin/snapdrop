@@ -48,6 +48,14 @@ ShareDrop uses WebRTC only and isn't compatible with Safari browsers. Snapdrop u
 ```
     git clone git@github.com:RobinLinus/snapdrop.git
     cd snapdrop
+
+    In order to create zip files on the client side, we'll need to be able to require the JSzip module, by packing it through browserify.
+
+    cd client
+    npm install browserify
+    npm install jszip
+    /usr/local/Cellar/node/11.0.0/bin/browserify -r jszip  > ./scripts/depsBundle.js
+
     docker-compose up
 ```
 

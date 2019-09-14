@@ -104,27 +104,49 @@ class Peer {
             this._filesQueue.push(files[i]);
         }
         if (this._busy) return;
-        this._dequeueFile();
+        this._dequeueMultipleFiles();
     }
 
-    _dequeueFile() {
+    _dequeueMultipleFiles() {
         if (!this._filesQueue.length) return;
         this._busy = true;
-        const file = this._filesQueue.shift();
-        this._sendFile(file);
+        this._compressAndSendFiles(this._filesQueue);
     }
 
-    _sendFile(file) {
-        this.sendJSON({
+    _compressAndSendFiles(files) {
+        const self = this;
+
+        if (files.length === 1) {
+            this._sendFile(self, files[0])
+        }
+        else {
+            const JSZip = require("jszip");
+            const zip = new JSZip();
+            
+            files.forEach(file => {
+                zip.file(file.name, file);
+            })
+    
+            zip.generateAsync({type:"blob"})
+                .then(function (blob) {
+                    self._sendFile(self, new File([blob], "archive.zip"))
+                })
+        }
+    }
+
+    _sendFile(self, file) {
+        self.sendJSON({
             type: 'header',
             name: file.name,
             mime: file.type,
             size: file.size
         });
-        this._chunker = new FileChunker(file,
-            chunk => this._send(chunk),
-            offset => this._onPartitionEnd(offset));
-        this._chunker.nextPartition();
+
+        self._chunker = new FileChunker(file,
+            chunk => self._send(chunk),
+            offset => self._onPartitionEnd(offset));
+
+        self._chunker.nextPartition();
     }
 
     _onPartitionEnd(offset) {
@@ -206,7 +228,7 @@ class Peer {
         this._onDownloadProgress(1);
         this._reader = null;
         this._busy = false;
-        this._dequeueFile();
+        this._filesQueue = [];
         Events.fire('notify-user', 'File transfer completed.');
     }
 
