@@ -2,7 +2,7 @@ version: "3"
 services:
   node:
     image: "node:lts-alpine"
-    user: "node"
+    user: "root"
     working_dir: /home/node/app
     volumes:
       - ./server/:/home/node/app
